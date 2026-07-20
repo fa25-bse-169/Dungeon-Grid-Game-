@@ -1,0 +1,253 @@
+#include <iostream>
+#include <vector> //we are using this to change dungeon size in each level
+#include <string>
+#include <cstdlib>
+#include <ctime>
+#include<iomanip>
+#include<fstream>
+using namespace std;
+//global variablesss!!!!!
+int hp=8; //player's health
+int keys=0;
+int moveCount=0;
+int currentLevel=0;
+vector<vector<string>>levels={
+ // Level 1
+ {
+ "#####################",
+ "#P ## K ###",
+ "# ### ##### ### #",
+ "# # # #",
+ "# # ##",
+ "# ### ## ###### # K#",
+ "# # # ## #",
+ "# ####### E # # #",
+ "########## ##########",
+ }, // LEVEL 2
+ {
+ "#####################",
+ "#P # K #",
+ "# ### # ### ####### #",
+ "# #",
+ "####### ######### # #",
+ "# # # #",
+ "# #### #### ##### # #",
+ "# K ###",
+ "##### #### #### #####",
+ "# ^ # # #### #",
+ "# ####### E ### #",
+ "########## ##########",
+ },
+ // LEVEL 3
+ {
+ "#####################",
+ "#P ^ # #",
+ "# ### #### ###### # #",
+ "# # # K# # #",
+ "# # ###### ####### #",
+ "# # ^ #",
+ "# # # ## ####### # #",
+ "# K # ## #",
+ "########### ## #####",
+ "# ^ # # # #",
+ "# ####### E #",
+ "########## ##########", }
+};
+vector<string> maze;
+int ROWS=0, COLS=0;
+int playerX=0, playerY=0;
+//function prototypes
+void clearConsole();
+void loadLevel(int L);
+void printMaze();
+bool inBounds(int x,int y);
+bool canMove(int x,int y);
+void handleTile(int x,int y);
+void placeRandomTrap();
+void saveGame();
+bool loadGame();
+int main() {
+srand(time(0));
+cout<<"Do you want to load a saved game?(y for yes/n for no):"; char choice;
+cin>>choice;
+if(choice=='y'||choice=='Y'){
+ if(!loadGame()){
+ loadLevel(currentLevel);
+ }
+}else{
+ loadLevel(currentLevel);
+}
+ while(true){
+ if(hp <= 0){
+ printMaze();
+ cout << "\n You died. Game Over.\n";
+ break;
+ }
+ printMaze();
+ cout<<"\nMove (W/A/S/D) or Q to save & quit: ";
+ char mv;
+ cin>>mv;
+ if(mv=='q'||mv =='Q'){
+ saveGame();
+ cout << "Exiting game.\n";
+ break;
+ }
+ moveCount++;
+// place items (may or may not place)
+ placeRandomTrap(); int nx=playerX, ny=playerY;
+ if(mv=='w' || mv=='W')
+ nx--;
+ else if(mv=='s' || mv=='S')
+ nx++;
+ else if(mv=='a' || mv=='A')
+ ny--;
+ else if(mv=='d' || mv=='D')
+ ny++;
+ if (!inBounds(nx, ny))
+ continue;
+ if (!canMove(nx, ny))
+ continue;
+ // if tile is exit
+ if(maze[nx][ny]=='E'){
+ if(keys>=2){
+ // move player visually to exit (optional)
+ playerX= nx;
+ playerY= ny;
+ // advance level
+ currentLevel++;
+ if(currentLevel>=(int)levels.size()){
+ printMaze();
+ cout<<"\n You finished all levels! You win!\n";
+ break;
+ } else{
+ // reset keys for the next level, keep HP keys=0;
+ loadLevel(currentLevel);
+ continue;
+ }
+ } else{
+ // can't enter exit without keys — do not move into it
+ cout<<"\nThe door is locked.Find 2 keys.\n";
+ continue;
+ }
+ }
+ playerX= nx;
+ playerY= ny;
+ handleTile(playerX, playerY);
+ }
+ return 0;
+}
+void clearConsole(){
+ #ifdef _WIN32
+ system("cls");
+ #else
+ system("clear");
+ #endif
+}
+void loadLevel(int L){
+ maze=levels[L]; ROWS=maze.size();
+ COLS=maze[0].size();
+ for(int i=0; i<ROWS; ++i) {
+ for(int j=0; j<COLS; ++j){
+ if(maze[i][j]=='P'){
+ playerX= i;
+ playerY= j;
+ maze[i][j]=' ';
+ }
+ }
+}
+}
+void printMaze() {
+ clearConsole();
+ cout<<setw(80)<<"************************************************"<<endl;
+ cout<<setw(80)<<"* WELCOME TO DUNGEON ESCAPE *"<<endl;
+ cout<<setw(80)<<"* Manahil Fatima, FA25-BSE-060 *"<<endl;
+ cout<<setw(80)<<"* Mishal Shahid, FA25-BSE-169 *"<<endl;
+ cout<<setw(80)<<"************************************************"<<endl;
+ cout<<"Instruction/Rules: "<<endl;
+ cout<<"\nYou are player P, you have to escape the dungeon by reaching the exit E "<<endl;
+ cout<<"Use w to move upward, s to move downward, d to move right, and a to move left"<<endl;
+ cout<<"But you need Keys to open the exit...hmm Beware of the spikes present in dungeon"<<endl;
+ cout<<"If you step on spikes you'll lose your Health and you will die " <<endl;
+ cout <<"\nLevel: " <<(currentLevel+1)<<" \nHP: " <<hp<< " \nKeys: "<<keys<< "\n\n";
+ for(int i=0; i<ROWS; ++i){ cout<<setw(40);
+ for (int j=0; j<COLS; ++j) {
+ if (i==playerX && j==playerY)cout<<'P';
+ else cout<<maze[i][j];
+ }
+ cout << "\n";
+ }
+}
+bool inBounds(int x,int y){
+ return x >=0 && x<ROWS && y>=0 && y<COLS;
+}
+bool canMove(int x,int y){
+ if(!inBounds(x,y)) return false;
+ return maze[x][y] != '#';
+}
+void handleTile(int x, int y){
+ if(!inBounds(x,y))return;
+ char &tile= maze[x][y];
+ if (tile=='K'){
+ keys++;
+ tile=' ';
+ cout << "\nYou picked a KEY!\n";
+ } else if (tile == '^'){
+ hp--;
+ tile = ' ';
+ cout<<"\nOuch! Spike -1 HP\n"; } else if(tile =='E'){
+ if(keys >=2){
+ cout<<"\nLevel Completed! Moving to next level...\n";
+ }else{
+ cout<<"\nExit locked. Need 2 keys.\n";
+ }
+ }
+}
+void placeRandomTrap(){
+if(currentLevel==0 && moveCount%4!=0)
+ return;
+if(currentLevel==1 && moveCount%3!=0)
+ return;
+if(currentLevel==2 && moveCount%2!=0)
+ return;
+ for(int attempt=0; attempt<20;attempt++){
+ int x= rand()%ROWS;
+ int y= rand()%COLS;
+ if (maze[x][y]==' ') {
+ int r=rand() % 2;
+ if (r==1)maze[x][y]= '^';
+ break;
+ }
+ } }
+void saveGame() {
+ ofstream saveFile("savegame.txt"); // open file for writing
+ if (!saveFile) {
+ cout<<"Error: Could not save game.\n";
+ return;
+ }
+ saveFile<<currentLevel<<" "<<hp <<" "<<keys<<" "
+ <<playerX<<" "<<playerY<<"\n";
+ //to Save maze
+ for(int i=0; i<ROWS; ++i) {
+ saveFile<<maze[i]<<"\n";
+ }
+ saveFile.close();
+ cout<<"Game saved successfully!\n";
+}
+bool loadGame(){
+ ifstream loadFile("savegame.txt"); // open file for reading
+ if(!loadFile){
+ cout<<"No saved game found.\n";
+ return false;
+ }
+ loadFile>>currentLevel>>hp>>keys>>playerX>>playerY;
+ loadFile.ignore(); maze.clear();
+ string row;
+ while(getline(loadFile, row)){
+ maze.push_back(row);
+ }
+ ROWS = maze.size();
+ COLS = maze[0].size();
+ loadFile.close();
+ cout<<"Game loaded successfully!\n";
+ return true;
+}
